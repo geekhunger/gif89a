@@ -124,8 +124,9 @@ function readGifImage(file)
     -- Main Loop
     local ExtensionIntroducer
     while ExtensionIntroducer ~= "3b" do -- Trailer
-        ExtensionIntroducer = get_bytes(1, "hex")
         local GraphicControlExtension
+        ::continue::
+        ExtensionIntroducer = get_bytes(1, "hex")
         
         if ExtensionIntroducer == "21" then -- Any Extension Block
             local ExtensionLabel = get_bytes(1, "hex")
@@ -142,69 +143,30 @@ function readGifImage(file)
                 GraphicControlExtension.DelayTime = get_bytes(2)
                 GraphicControlExtension.TransparentColorIndex = get_bytes(1)
                 GraphicControlExtension.BlockTerminator = get_bytes(1) -- zero length byte
-                --elseif  ExtensionLabel == "01" then -- Plain Text Extension
-                --elseif ExtensionLabel == "ff" then do end -- Application Extension
-                --elseif ExtensionLabel == "fe" then do end -- Comment Extension
+                goto continue
+            elseif ExtensionLabel == "01" then -- Plain Text Extension
+            elseif ExtensionLabel == "ff" then -- Application Extension
+            elseif ExtensionLabel == "fe" then -- Comment Extension    
             end
-        end
-        
-        ExtensionIntroducer = get_bytes(1, "hex")
-        if ExtensionIntroducer == "21" then
-            local ExtensionLabel = get_bytes(1, "hex")
-            if ExtensionLabel == "2c" then -- Image Descriptor
-                
-                
-            end
-        end
-        
-        
-        if Application then
-            parse app block
-        elseif Comment then
-            parse comment block
-        else
-            if GraphicControl then
-                parse & cache graphic block
-            end
+        elseif ExtensionIntroducer == "2c" then -- Image Descriptor
+            local ImageDescriptor = {}
+            ImageDescriptor.ExtensionIntroducer = ExtensionIntroducer
+            ImageDescriptor.ImageLeftPosition = get_bytes(2)
+            ImageDescriptor.ImageTopPosition = get_bytes(2)
+            ImageDescriptor.ImageWidth = get_bytes(2)
+            ImageDescriptor.ImageHeight = get_bytes(2)
+            local ImageDescriptorPack = get_bytes(1, "bin")
+            ImageDescriptor.LocalColorTableFlag = ImageDescriptorPack:sub(1, 1):toint()
+            ImageDescriptor.InterlaceFlag = ImageDescriptorPack:sub(2, 2):toint()
+            ImageDescriptor.LocalColorTableSortFlag = ImageDescriptorPack:sub(3, 3):toint()
+            ImageDescriptor.ReservedBits = ImageDescriptorPack:sub(4, 5):toint()
+            ImageDescriptor.SizeOfLocalColorTable = 2^(ImageDescriptorPack:sub(6, 8):toint() + 1)
             
-            check next block
+            -- Local Color Table
+            local LocalColorTable = ImageDescriptor.LocalColorTableSortFlag == 1 and get_colors(ImageDescriptor.SizeOfLocalColorTable) or nil
             
-            if PlainText then
-                parse text block
-            elseif ImageDescriptor then
-                parse descriptor block
-                parse local color table
-                parse lzw image data
-            end
+            -- Image Data
+            
         end
-        
-        
-        
-        if ImageDescriptor then
-            parse descriptor block
-            parse local color table
-            parse image data
-        elseif PlainText then
-            parse block
-        end
-        
-        
-        -- Image Descriptor
-        local ImageLeftPosition = get_bytes(2)
-        local ImageTopPosition = get_bytes(2)
-        local ImageWidth = get_bytes(2)
-        local ImageHeight = get_bytes(2)
-        local ImageDescriptorPack = get_bytes(1, "bin")
-        local LocalColorTableFlag = ImageDescriptorPack:sub(1, 1):toint()
-        local InterlaceFlag = ImageDescriptorPack:sub(2, 2):toint()
-        local LocalColorTableSortFlag = ImageDescriptorPack:sub(3, 3):toint()
-        local ImageDescriptorReserved = ImageDescriptorPack:sub(4, 5):toint()
-        local SizeOfLocalColorTable = 2^(ImageDescriptorPack:sub(6, 8):toint() + 1)
-        
-        -- Local Color Table
-        local LocalColorTable = LocalColorTableFlag == 1 and get_colors(SizeOfLocalColorTable) or nil
-        
-        -- Image Data
-        --
     end
 end

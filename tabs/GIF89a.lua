@@ -59,7 +59,7 @@ function printf(t, indent)
                 print(indent..tostring(n)..": <-")
             else
                 print(indent..tostring(n)..":")
-                spine.utils.print(v, indent.."   ")
+                printf(v, indent.."   ")
             end
         elseif type(v) == "function" then
             print(indent..tostring(n).."()")

@@ -1,5 +1,8 @@
 ----------------------------------------
 -- GIF89a encoder / decoder
+--
+-- NOTE: Plain Text Extension, Application Extension and Comment Extension blocks
+-- as well as Interlacing are not supported. Not even by Photoshop so why bother?
 ----------------------------------------
 
 -- Convert string or number to its hexadecimal representation
@@ -45,6 +48,28 @@ function string.tobin(hex)
 end
 
 
+-- Copy values from first table to second
+function table.copy(from, to)
+    for _, value in pairs(from) do
+        if type(value) == "table" then
+            table.copy(value, to)
+        else
+            table.insert(to, value)
+        end
+    end
+end
+
+-- Concat recursevly all values from given tables
+function table.merge(...)
+    local dump = {}
+    while #arg > 0 do
+        table.copy(arg[1], dump)
+        table.remove(arg, 1)
+    end
+    return dump
+end
+
+
 function printf(t, indent)
     if not indent then indent = "" end
     local names = {}
@@ -75,14 +100,11 @@ function readGifImage(file)
     local hex_content = raw_data:tohex()
     local file_pointer = 12
     
-    print(hex_content)
-    
     local function get_bytes(len, format)
         local from = file_pointer + 1
         local to = from + 2 * len - 1
         local chunk = hex_content:sub(from, to)
-        file_pointer = to
-        
+        file_pointer = to    
         if format == "hex" then return chunk end -- return bytes as raw hex values
         if format == "bin" then return chunk:tobin() end -- return packed bytes as binary
         if len > 1 then return chunk:tole():toint() end -- return multibyte integers as little endians
@@ -91,15 +113,33 @@ function readGifImage(file)
     
     local function get_colors(len)
         local colors = {}
-        
-        for pos = 1, len do
+        for pos = 0, len - 1 do
             local r = get_bytes(1)
             local g = get_bytes(1)
             local b = get_bytes(1)
             colors[pos] = color(r, g, b)
         end
-        
         return colors
+    end
+    
+    local function init_colorcodes(colors, len)
+        local codes = {}
+        local lenmap = {[2] = 4, [3] = 8, [4] = 16, [5] = 32, [6] = 64, [7] = 128, [8] = 256}
+        for i = 0, lenmap[len] - 1 do codes[i] = colors[i] end
+        table.insert(codes, "cc") -- clear code
+        table.insert(codes, "eoi") -- end of information code
+        return codes
+    end
+    
+    local function get_stream_chunk(block_len, color_table, lzw_min_code_size)
+        local codes = init_colorcodes(color_table, lzw_min_code_size)
+        local indices = {}
+        for i = 1, block_len do
+            local current_code = get_bytes(1)
+            local id = codes[current_code]
+            print(current_code)
+        end
+        return indices
     end
     
     -- Header
@@ -146,11 +186,11 @@ function readGifImage(file)
                 goto continue
             elseif ExtensionLabel == "01" then -- Plain Text Extension
             elseif ExtensionLabel == "ff" then -- Application Extension
-            elseif ExtensionLabel == "fe" then -- Comment Extension    
+            elseif ExtensionLabel == "fe" then -- Comment Extension
             end
         elseif ExtensionIntroducer == "2c" then -- Image Descriptor
             local ImageDescriptor = {}
-            ImageDescriptor.ExtensionIntroducer = ExtensionIntroducer
+            ImageDescriptor.ImageSeparator = ExtensionIntroducer
             ImageDescriptor.ImageLeftPosition = get_bytes(2)
             ImageDescriptor.ImageTopPosition = get_bytes(2)
             ImageDescriptor.ImageWidth = get_bytes(2)
@@ -163,10 +203,20 @@ function readGifImage(file)
             ImageDescriptor.SizeOfLocalColorTable = 2^(ImageDescriptorPack:sub(6, 8):toint() + 1)
             
             -- Local Color Table
-            local LocalColorTable = ImageDescriptor.LocalColorTableSortFlag == 1 and get_colors(ImageDescriptor.SizeOfLocalColorTable) or nil
+            local LocalColorTable = ImageDescriptor.LocalColorTableFlag == 1 and get_colors(ImageDescriptor.SizeOfLocalColorTable) or nil
             
             -- Image Data
+            local PixelIndicesStream = {}
+            local LzwMinimumCodeSize = get_bytes(1)
+            local SizeOfCurrentSubBlock
             
+            while SizeOfCurrentSubBlock ~= 0 do -- Data Stream
+                SizeOfCurrentSubBlock = get_bytes(1)
+                if SizeOfCurrentSubBlock > 0 then -- Sub Block
+                    get_stream_chunk(SizeOfCurrentSubBlock, LocalColorTable or GlobalColorTable, LzwMinimumCodeSize)
+                    --cache stream to PixelIndicesStream
+                end
+            end
         end
     end
 end

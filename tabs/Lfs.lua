@@ -29,17 +29,17 @@ local MIME = {
     [".luac"] = "application/x-lua-bytecode",
     [".js"] = "application/javascript",
     [".json"] = "application/json",
-    [".pdf"] = "application/pdf",
     [".zip"] = "application/zip",
+    [".pdf"] = "application/pdf",
+    [".svg"] = "image/svg+xml",
+    [".svgz"] = "image/svg+xml",
     [".ico"] = "image/x-icon",
     [".jpeg"] = "image/jpeg",
     [".jpg"] = "image/jpeg",
     [".gif"] = "image/gif",
     [".png"] = "image/png",
     [".tif"] = "image/tiff",
-    [".tiff"] = "image/tiff",
-    [".svg"] = "image/svg+xml",
-    [".svgz"] = "image/svg+xml"
+    [".tiff"] = "image/tiff"
 }
 
 

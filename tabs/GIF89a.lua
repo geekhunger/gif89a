@@ -2,7 +2,7 @@
 -- GIF89a encoder / decoder
 --
 -- NOTE: Plain Text Extension, Application Extension and Comment Extension blocks
--- as well as Interlacing are not supported. Not even by Photoshop so why bother?
+-- as well as Interlacing are not supported.
 ----------------------------------------
 
 -- Convert string or number to its hexadecimal representation
@@ -96,17 +96,16 @@ end
 
 
 function readGifImage(file)
-    local raw_data = lfs.read(file)
-    local hex_content = raw_data:tohex()
+    local file_data = lfs.read_binary(file)
     local file_pointer = 12
     
-    local function get_bytes(len, format)
+    local function get_bits(len, format)
         local from = file_pointer + 1
         local to = from + 2 * len - 1
-        local chunk = hex_content:sub(from, to)
-        file_pointer = to    
-        if format == "hex" then return chunk end -- return bytes as raw hex values
-        if format == "bin" then return chunk:tobin() end -- return packed bytes as binary
+        local chunk = file_data:sub(from, to)
+        file_pointer = to
+        if format == "bin" then return chunk end -- you should return packed bytes always as binary
+        if format == "hex" then return chunk:tohex() end -- return bits as raw hex values
         if len > 1 then return chunk:tole():toint() end -- return multibyte integers as little endians
         return chunk:toint() -- return singlebyte integers
     end
@@ -135,7 +134,7 @@ function readGifImage(file)
         local codes = init_colorcodes(color_table, lzw_min_code_size)
         local indices = {}
         for i = 1, block_len do
-            local current_code = get_bytes(1)
+            local current_code = get_bytes(1, "bin")
             local id = codes[current_code]
             print(current_code)
         end
@@ -209,6 +208,9 @@ function readGifImage(file)
             local PixelIndicesStream = {}
             local LzwMinimumCodeSize = get_bytes(1)
             local SizeOfCurrentSubBlock
+            
+            
+            print("lzw_min_size", LzwMinimumCodeSize)
             
             while SizeOfCurrentSubBlock ~= 0 do -- Data Stream
                 SizeOfCurrentSubBlock = get_bytes(1)

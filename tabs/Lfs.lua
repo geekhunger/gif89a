@@ -1,6 +1,6 @@
 ----------------------------------------
--- (simple) Lua-File-System
--- Primarily for accessing raw file data at places where Codea couldn't reach before
+-- Simple Lua-File-System
+-- Get access to raw file data at places where Codea couldn't reach before
 ----------------------------------------
 
 lfs = {}
@@ -14,23 +14,32 @@ lfs.DROPBOX = lfs.DOCUMENTS.."/Dropbox.assets"
 package.path = package.path..";"..lfs.DROPBOX.."/?.lua"
 
 local MIME = {
-    [".text"] = "text/plain",
+    [".htm"] = "text/html",
+    [".html"] = "text/html",
+    [".shtml"] = "text/html",
+    [".xhtml"] = "text/xhtml+xml",
+    [".rss"] = "text/rss+xml",
+    [".xml"] = "text/xml",
+    [".css"] = "text/html",
     [".txt"] = "text/plain",
+    [".text"] = "text/plain",
     [".md"] = "text/markdown",
     [".markdown"] = "text/markdown",
     [".lua"] = "text/x-lua",
     [".luac"] = "application/x-lua-bytecode",
+    [".js"] = "application/javascript",
+    [".json"] = "application/json",
     [".pdf"] = "application/pdf",
+    [".zip"] = "application/zip",
+    [".ico"] = "image/x-icon",
     [".jpeg"] = "image/jpeg",
     [".jpg"] = "image/jpeg",
     [".gif"] = "image/gif",
     [".png"] = "image/png",
+    [".tif"] = "image/tiff",
     [".tiff"] = "image/tiff",
-    [".html"] = "text/html",
-    [".htm"] = "text/html",
-    [".css"] = "text/html",
-    [".js"] = "application/javascript",
-    [".json"] = "application/json",
+    [".svg"] = "image/svg+xml",
+    [".svgz"] = "image/svg+xml"
 }
 
 

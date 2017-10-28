@@ -5,13 +5,11 @@
 
 lfs = {}
 
-lfs.ENV = os.getenv("HOME")
-lfs.DOCUMENTS = lfs.ENV.."/Documents"
+lfs.ENVIRONMENT = os.getenv("HOME")
+lfs.DOCUMENTS = lfs.ENVIRONMENT.."/Documents"
 lfs.DROPBOX = lfs.DOCUMENTS.."/Dropbox.assets"
 
--- Extend search path of require()
--- default package.path is: /var/containers/Bundle/Application/AC80B6CE-8AEE-422D-8163-4B45033C2171/Codea.app/Frameworks/RuntimeKit.framework/?.lua
-package.path = package.path..";"..lfs.DROPBOX.."/?.lua"
+package.path = package.path..";"..lfs.DROPBOX.."/?.lua" -- extend search path of require()
 
 local MIME = {
     [".htm"] = "text/html",
@@ -81,11 +79,11 @@ function lfs.read_binary(file)
     local data = io.open(string.format("%s/%s", DIR, FILE..EXT), "rb")
     
     if data then
-        local chunks = 512
+        local chunks = 256
         local content = ""
         
         while true do
-            local bytes = data:read(chunks) -- Read only n bytes per iteration
+            local bytes = data:read(chunks) -- read only n bytes per iteration
             if not bytes then break end
             content = content..bytes
         end
@@ -104,7 +102,7 @@ function lfs.write_binary(file, content)
     local data = io.open(string.format("%s/%s", DIR, FILE..EXT), "wb")
     
     if data then
-        data:write(content) -- You could do it in parts, but oh.
+        data:write(content) -- you could do it in parts, but oh
         data:close()
         return true
     end

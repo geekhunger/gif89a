@@ -1,7 +1,7 @@
 -- gif89a encoder / decoder
 
 function setup()
-    --gif = readGifImage(lfs.DROPBOX.."/gif89a.gif")
+    gif = readGifImage(lfs.DROPBOX.."/gif89a.gif")
     
     local function bin_to_hex(bin)
         local map = {
@@ -22,12 +22,10 @@ function setup()
             ["1110"] = "e",
             ["1111"] = "f"
         }
-        return bin:format("%04i"):gsub("[0-1][0-1][0-1][0-1]", map)
+        return bin:gsub("[0-1][0-1][0-1][0-1]", map)
     end
     
-    local b = "1010"
-    print(4-#b%4)
-    print(string.format("%04i", b))
+    --print(">>>>>>", bin_to_hex("0001"))
 end
 
 function draw()

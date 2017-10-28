@@ -26,7 +26,7 @@ end
 
 -- Convert hex to binary
 function string.tobin(hex)
-    local map = {
+    return hex:gsub("[0-9a-f]", {
         ["0"] = "0000",
         ["1"] = "0001",
         ["2"] = "0010",
@@ -43,8 +43,7 @@ function string.tobin(hex)
         ["d"] = "1101",
         ["e"] = "1110",
         ["f"] = "1111"
-    }
-    return hex:gsub("[0-9a-f]", map)
+    })
 end
 
 
@@ -96,16 +95,17 @@ end
 
 
 function readGifImage(file)
-    local file_data = lfs.read_binary(file)
+    local file_raw_data = lfs.read_binary(file)
+    local file_hex_data = file_raw_data:tohex()
     local file_pointer = 12
     
-    local function get_bits(len, format)
+    local function get_bytes(len, format)
         local from = file_pointer + 1
         local to = from + 2 * len - 1
-        local chunk = file_data:sub(from, to)
+        local chunk = file_hex_data:sub(from, to)
         file_pointer = to
-        if format == "bin" then return chunk end -- you should return packed bytes always as binary
-        if format == "hex" then return chunk:tohex() end -- return bits as raw hex values
+        if format == "hex" then return chunk end -- return bits as raw hex values
+        if format == "bin" then return chunk:tobin() end -- you should return packed bytes always as binary
         if len > 1 then return chunk:tole():toint() end -- return multibyte integers as little endians
         return chunk:toint() -- return singlebyte integers
     end
@@ -124,26 +124,30 @@ function readGifImage(file)
     local function init_colorcodes(colors, len)
         local codes = {}
         local lenmap = {[2] = 4, [3] = 8, [4] = 16, [5] = 32, [6] = 64, [7] = 128, [8] = 256}
-        for i = 0, lenmap[len] - 1 do codes[i] = colors[i] end
-        table.insert(codes, "cc") -- clear code
-        table.insert(codes, "eoi") -- end of information code
+        local pos = lenmap[len]
+        for i = 0, pos - 1 do codes[i] = colors[i] end
+        codes[pos] = "cc" -- clear code
+        codes[pos + 1] = "eoi" -- end of information code
         return codes
     end
     
     local function get_stream_chunk(block_len, color_table, lzw_min_code_size)
-        local codes = init_colorcodes(color_table, lzw_min_code_size)
-        local indices = {}
-        for i = 1, block_len do
-            local current_code = get_bytes(1, "bin")
-            local id = codes[current_code]
-            print(current_code)
+        local block_hex_data = get_bytes(block_len, "hex") -- debug
+        local block_bin_data = block_hex_data:tobin()
+        local first_code_size = lzw_min_code_size + 1
+        
+        print("lzw:", lzw_min_code_size)
+        print("hex:", block_hex_data) -- debug
+        print("bin:", block_bin_data)
+        
+        for c in block_bin_data:gmatch(string.rep("%d", first_code_size)) do
+            print(c)
         end
-        return indices
     end
     
     -- Header
-    local Signature = raw_data:sub(1, 3)
-    local Version = raw_data:sub(4, 6)
+    local Signature = file_raw_data:sub(1, 3)
+    local Version = file_raw_data:sub(4, 6)
     
     -- Logical Screen Descriptor
     local LogicalScreenWidth = get_bytes(2)
@@ -209,9 +213,6 @@ function readGifImage(file)
             local LzwMinimumCodeSize = get_bytes(1)
             local SizeOfCurrentSubBlock
             
-            
-            print("lzw_min_size", LzwMinimumCodeSize)
-            
             while SizeOfCurrentSubBlock ~= 0 do -- Data Stream
                 SizeOfCurrentSubBlock = get_bytes(1)
                 if SizeOfCurrentSubBlock > 0 then -- Sub Block
@@ -221,4 +222,5 @@ function readGifImage(file)
             end
         end
     end
+    
 end
